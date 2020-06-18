@@ -97,11 +97,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
+import string
 import sys
 from tkinter import *
 from tkinter import filedialog
 from tkinter.filedialog import asksaveasfile
+from tkinter import messagebox
 import sys
 
 import svg_view
@@ -555,7 +556,7 @@ class Eggbot_Hatch(inkex.Effect):
             help="Spacing between hatch lines")
         self.OptionParser.add_option(
             "--tolerance", action="store", type="float",
-            dest="tolerance", default=1.0,
+            dest="tolerance", default=3.0,
             help="Allowed deviation from original paths")
         self.OptionParser.add_option(
             "--minGap", action="store", type="float",
@@ -662,6 +663,10 @@ class Eggbot_Hatch(inkex.Effect):
                     # Keep the prior subpath: it appears to be a closed path
                     subpaths.append(subpath_vertices)
             subpath_vertices = []
+            tolerance_slider = Entry_box_5.get()
+            float_tolerance_slider = float(tolerance_slider)
+            self.options.tolerance = float_tolerance_slider
+
             subdivideCubicPath(sp, float(self.options.tolerance / 100))
             for csp in sp:
                 # Add this vertex to the list of vetices
@@ -971,7 +976,10 @@ class Eggbot_Hatch(inkex.Effect):
 
         # Now make a <path> element which contains the hatches & is a child
         # of the new <g> element
-        style = {'stroke': '#000000', 'fill': 'none', 'stroke-width': '%f' % stroke_width}
+        strokewidht = Entry_box_4.get()
+        float_stroke_width = float(strokewidht)
+        color = Entry_box_8.get()
+        style = {'stroke': color, 'fill': 'none', 'stroke-width': '%f' % float_stroke_width}
         line_attribs = {'style': simplestyle.formatStyle(style), 'd': path}
         tran = node.get('transform')
         if (tran != None) and (tran != ''):
@@ -1016,6 +1024,11 @@ class Eggbot_Hatch(inkex.Effect):
         # We wish to convert the number of pixels considered insignificant
         # to a unitless, fractional length of a hatch line.  The length of
         # a hatch line is 2r pixels.  So,
+
+        minGap_slider = Entry_box_3.get()
+        float_minGap_slider = float(minGap_slider)
+        self.options.minGap = float_minGap_slider
+
         self.minGap = self.options.minGap / (2.0 * r)
 
         # Now generate hatch lines within the square
@@ -1069,22 +1082,25 @@ class Eggbot_Hatch(inkex.Effect):
         else:
             # Traverse the entire document
             self.recursivelyTraverseSvg(self.document.getroot(), self.docTransform)
+
         Hatch_spacing = (Entry_box_1.get())
         float_Hatch_spacing = float(Hatch_spacing)
+
+        if  root.Crosshatch.get() =="1":
+            self.options.crossHatch = True
+
+
+        Hatch_angle = (Entry_box_2.get())
+        float_Hatch_angle = float(Hatch_angle)
+        self.options.hatchAngle = float_Hatch_angle
+
         # Build a grid of possible hatch lines
         self.makeHatchGrid(float(self.options.hatchAngle),
                            float(float_Hatch_spacing), True)
 
-        if  root.Crosshatch.get() =="1":
-            bool_crosshatch = True
-        else:
-            bool_crosshatch = False
-        Hatch_angle = (Entry_box_2.get())
-        float_Hatch_angle = float(Hatch_angle)
-
         if self.options.crossHatch:
-            self.makeHatchGrid(float(self.options.hatchAngle + float_Hatch_angle),
-                               float(float_Hatch_spacing), bool_crosshatch)
+            self.makeHatchGrid(float(self.options.hatchAngle + 90),
+                               float(float_Hatch_spacing), False)
 
         # Now loop over our hatch lines looking for intersections
         for h in self.grid:
@@ -1137,6 +1153,9 @@ class Eggbot_Hatch(inkex.Effect):
                 stroke_width = float(1.0)
 
             path = ''
+            if root.Ends.get() == "1":
+                self.options.reducePenLifts = True
+
             if not self.options.reducePenLifts:
                 for segment in self.hatches[key]:
                     if len(segment) < 2:
@@ -1396,14 +1415,21 @@ class Eggbot_Hatch(inkex.Effect):
         #		inkex.errormsg( 'x in= %f y in= %f slope= %f x out= %f y out= %f delta X= %f delta Y= %f' % ( fDeltaX, fDeltaY, fSlope, ptReturn[0], ptReturn[1], deltaX, deltaY ) )
         return ptReturn
 
+Save_file_path = ""
 def file_save():
     root.file = asksaveasfile(mode='a')
+    global Save_file_path
+    Save_file_path = str(root.file)
 
-
+SVG_open_path = ""
 def openSVG():
     # *** open file ***
     root.SVGfile = filedialog.askopenfilename(initialdir="SVGS/", title="Select file", filetypes=(
     ("SVG files", "*.svg"), ("all files", "*.*")))
+    global SVG_open_path
+    SVG_open_path =str(root.SVGfile)
+
+
 
 
 def close_window():
@@ -1411,12 +1437,23 @@ def close_window():
 
 def Fill_path():
 
-    inkex.pathes(str(root.SVGfile),str(root.file.name))
-    e = Eggbot_Hatch()
-    e.affect()
-    if(root.Preview_image.get() =="1"):
-        svg_view.svg_file_name(str(root.file.name))
-        svg_view.run()
+    print()
+    if (SVG_open_path != "") and (Save_file_path !=""):
+        inkex.pathes(str(root.SVGfile),str(root.file.name))
+        e = Eggbot_Hatch()
+        e.affect()
+        if(root.Preview_image.get() =="1"):
+            svg_view.svg_file_name(str(root.file.name))
+            svg_view.run()
+
+    elif (SVG_open_path == "") and (Save_file_path ==""):
+        messagebox.showinfo(title=None, message="Please select a SVG to process and a file to save to")
+
+    elif (SVG_open_path != "") and (Save_file_path == ""):
+        messagebox.showinfo(title=None, message="Plese select a file to save to..")
+
+    elif(SVG_open_path == "") and (Save_file_path != ""):
+        messagebox.showinfo(title=None, message="Please select a SVG to process.. ")
 
 def filepahts():
    print("svg")
@@ -1432,12 +1469,12 @@ subMenu.add_command(label="exit", command=close_window)
 Label(root, text="This is a stand alone utility using the EGG bot hatch fill utility. ", anchor="w", bg="gray20", fg="lime green").place(x=20, y=20, height=20, width=425)
 Label(root, text="Hatch spacing(px)", anchor="w", bg="gray20", fg="lime green").place(x=30, y=45, height=20, width=225)
 Label(root, text="Hatch angle (degrees)", anchor="w", bg="gray20", fg="lime green").place(x=30, y=85, height=20, width=225)
-Label(root, text="Range of end connections (defaut:3)", anchor="w", bg="gray20", fg="lime green").place(x=30, y=165, height=20, width=225)
-Label(root, text="Inset distance(px) (default:1)", anchor="w", bg="gray20", fg="lime green").place(x=30, y=230, height=20, width=225)
-Label(root, text="Tolerance (default:3.0)", anchor="w", bg="gray20", fg="lime green").place(x=30, y=270, height=20, width=225)
-Label(root, text="New_page_Width", anchor="w", bg="gray20", fg="lime green").place(x=30, y=320, height=20, width=200)
-Label(root, text="New_page_Height", anchor="w", bg="gray20", fg="lime green").place(x=30, y=345, height=20, width=200)
-
+Label(root, text="End connections (defaut:3)", anchor="w", bg="gray20", fg="lime green").place(x=30, y=165, height=20, width=225)
+Label(root, text="Stroke Width (default:1)", anchor="w", bg="gray20", fg="lime green").place(x=30, y=270, height=20, width=225)
+Label(root, text="Tolerance (default:3.0)", anchor="w", bg="gray20", fg="lime green").place(x=30, y=210, height=20, width=225)
+Label(root, text="New_page_Width", anchor="w", bg="gray20", fg="lime green").place(x=30, y=325, height=20, width=200)
+Label(root, text="New_page_Height", anchor="w", bg="gray20", fg="lime green").place(x=30, y=350, height=20, width=200)
+Label(root, text="Stroke Color HEX", anchor="w", bg="gray20", fg="lime green").place(x=30, y=300, height=20, width=200)
 # *** check button***
 root.Crosshatch = StringVar()
 Crosshatch_checkbox = Checkbutton(root, text="Crosshatch?", variable=root.Crosshatch, bg="gray20", fg="lime green",
@@ -1451,13 +1488,14 @@ Ends_checkbox = Checkbutton(root, text="Connect nearby ends?", variable=root.End
                  activebackground="deep sky blue")
 Ends_checkbox.deselect()
 Ends_checkbox.place(x=10, y=130)
-
+'''
 # *** check button***
 root.Fill_Edge = StringVar()
 Fill_edge_checkbox = Checkbutton(root, text="Instert fill from edge", variable=root.Fill_Edge , font=('Helvetica', '12'), bg="gray20",
                  fg="lime green", highlightbackground="gray20", activebackground="deep sky blue")
 Fill_edge_checkbox.deselect()
 Fill_edge_checkbox.place(x=10,y = 195)
+'''
 
 # *** check button***
 root.Preview_image = StringVar()
@@ -1476,13 +1514,13 @@ Entry_box_1 = Entry(root, textvariable=Hatch_spacing)
 Angle = StringVar(root, value='90.0')
 Entry_box_2 = Entry(root, textvariable=Angle)
 
-Range_end = StringVar(root, value='3')
+Range_end = StringVar(root, value='6')
 Entry_box_3 = Entry(root, textvariable=Range_end)
 
 Inset_distance = StringVar(root, value='1')
 Entry_box_4 = Entry(root, textvariable=Inset_distance)
 
-Tolerance = StringVar(root, value='3.0')
+Tolerance = StringVar(root, value='20.0')
 Entry_box_5 = Entry(root, textvariable=Tolerance)
 
 New_page_height = StringVar(root, value='800')
@@ -1491,13 +1529,17 @@ Entry_box_6 = Entry(root, textvariable=New_page_height)
 New_page_width = StringVar(root, value='1000')
 Entry_box_7 = Entry(root, textvariable=New_page_width)
 
+New_page_width = StringVar(root, value='#FF00FF')
+Entry_box_8 = Entry(root, textvariable=New_page_width)
+
 Entry_box_1.place(x=375, y=45, height=20, width=50)
 Entry_box_2.place(x=375, y=85, height=20, width=50)
 Entry_box_3.place(x=375, y=165, height=20, width=50)
-Entry_box_4.place(x=375, y=230, height=20, width=50)
-Entry_box_5.place(x=375, y=270, height=20, width=50)
-Entry_box_6.place(x=375, y=320, height=20, width=50)
-Entry_box_7.place(x=375, y=345, height=20, width=50)
+Entry_box_4.place(x=375, y=270, height=20, width=50)
+Entry_box_5.place(x=375, y=210, height=20, width=50)
+Entry_box_6.place(x=375, y=325, height=20, width=50)
+Entry_box_7.place(x=375, y=350, height=20, width=50)
+Entry_box_8.place(x=360, y=300, height=20, width=65)
 
 def Hatch_Spacing_px(px_space):
     Entry_box_1.delete(0, END)
@@ -1505,10 +1547,10 @@ def Hatch_Spacing_px(px_space):
 Hatch_Spacing_px(3)
 root.Slider_hatch_spacing = DoubleVar()
 root.Slider_hatch_spacing.set(3)
-root.Hatch_spacing_slider_Val= Scale(root, from_=1, to=25, resolution=.1,length=75,width=7,font=('Helvetica', '8'), orient=HORIZONTAL, bg="gray20",
+root.Hatch_spacing_slider_Val= Scale(root, from_=1, to=25, resolution=.1,length=100,width=7,font=('Helvetica', '8'), orient=HORIZONTAL, bg="gray20",
                            fg="lime green",command=Hatch_Spacing_px,variable=root.Slider_hatch_spacing,
                            highlightbackground="gray20", activebackground="deep sky blue", troughcolor="spring green")
-root.Hatch_spacing_slider_Val.place(x=290, y=40)
+root.Hatch_spacing_slider_Val.place(x=265, y=40)
 
 def Hatch_Angle_Degrees(Hatch_degrees):
     Entry_box_2.delete(0, END)
@@ -1516,10 +1558,10 @@ def Hatch_Angle_Degrees(Hatch_degrees):
 Hatch_Angle_Degrees(90.0)
 root.Slider_Hatch_Angle_Degrees = DoubleVar()
 root.Slider_Hatch_Angle_Degrees.set(90.0)
-root.Angle_slider_Val= Scale(root, from_=0, to=360, resolution=1,length=75,width=7,font=('Helvetica', '8'), orient=HORIZONTAL, bg="gray20",
+root.Angle_slider_Val= Scale(root, from_=0, to=360, resolution=1,length=100,width=7,font=('Helvetica', '8'), orient=HORIZONTAL, bg="gray20",
                            fg="lime green",command=Hatch_Angle_Degrees,variable=root.Slider_Hatch_Angle_Degrees,
                            highlightbackground="gray20", activebackground="deep sky blue", troughcolor="spring green")
-root.Angle_slider_Val.place(x=290, y=80)
+root.Angle_slider_Val.place(x=265, y=80)
 
 def Range_of_End(Range_End_px):
     Entry_box_3.delete(0, END)
@@ -1527,32 +1569,32 @@ def Range_of_End(Range_End_px):
 Range_of_End(3.0)
 root.Slider_Range_End_px = DoubleVar()
 root.Slider_Range_End_px.set(3.0)
-root.Range_of_End_slider_Val= Scale(root, from_=0, to=15, resolution=.1,length=75,width=7,font=('Helvetica', '8'), orient=HORIZONTAL, bg="gray20",
+root.Range_of_End_slider_Val= Scale(root, from_=0, to=1000, resolution=.1,length=100,width=7,font=('Helvetica', '8'), orient=HORIZONTAL, bg="gray20",
                            fg="lime green",command=Range_of_End,variable=root.Slider_Range_End_px,
                            highlightbackground="gray20", activebackground="deep sky blue", troughcolor="spring green")
-root.Range_of_End_slider_Val.place(x=290, y=160)
+root.Range_of_End_slider_Val.place(x=265, y=160)
 
-def Inset_Distance(Inset_Distance_px):
+def Stroke_Distance(Inset_Distance_px):
     Entry_box_4.delete(0, END)
     Entry_box_4.insert(0,Inset_Distance_px)
-Inset_Distance(1.0)
-root.Slider_Inset_Distance_px = DoubleVar()
-root.Slider_Inset_Distance_px.set(1.0)
-root.Inset_Distance_px_slider_Val= Scale(root, from_=0, to=10, resolution=.1,length=75,width=7,font=('Helvetica', '8'), orient=HORIZONTAL, bg="gray20",
-                           fg="lime green",command=Inset_Distance,variable=root.Slider_Inset_Distance_px,
+Stroke_Distance(1.0)
+root.Slider_Stroke_px = DoubleVar()
+root.Slider_Stroke_px.set(1.0)
+root.Stroke_slider_Val= Scale(root, from_=0, to=10, resolution=.2,length=100,width=7,font=('Helvetica', '8'), orient=HORIZONTAL, bg="gray20",
+                           fg="lime green",command=Stroke_Distance,variable=root.Slider_Stroke_px,
                            highlightbackground="gray20", activebackground="deep sky blue", troughcolor="spring green")
-root.Inset_Distance_px_slider_Val.place(x=290, y=225)
+root.Stroke_slider_Val.place(x=265, y=265)
 
 def Hatch_Tolerance(Hatch_Tolerance_px):
     Entry_box_5.delete(0, END)
     Entry_box_5.insert(0,Hatch_Tolerance_px)
-Inset_Distance(3.0)
+Hatch_Tolerance(3.0)
 root.Slider_Hatch_Tolerance_px = DoubleVar()
 root.Slider_Hatch_Tolerance_px.set(3.0)
-root.Hatch_Tolerance_slider_Val= Scale(root, from_=0, to=10, resolution=.1,length=75,width=7,font=('Helvetica', '8'), orient=HORIZONTAL, bg="gray20",
+root.Hatch_Tolerance_slider_Val= Scale(root, from_=.1, to=100, resolution=.1,length=100,width=7,font=('Helvetica', '8'), orient=HORIZONTAL, bg="gray20",
                            fg="lime green",command=Hatch_Tolerance,variable=root.Slider_Hatch_Tolerance_px,
                            highlightbackground="gray20", activebackground="deep sky blue", troughcolor="spring green")
-root.Hatch_Tolerance_slider_Val.place(x=290, y=265)
+root.Hatch_Tolerance_slider_Val.place(x=265, y=205)
 
 root.mainloop()
 

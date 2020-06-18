@@ -12,7 +12,6 @@ class Ui_MainWindow(object):
 
         max_Width = 850
         max_Height= 850
-        print("here2" + file_name)
         with open(file_name, 'r') as myfile:
             data = myfile.read()
         svg_width = re.search('width="(.+?)"', data)
@@ -27,8 +26,6 @@ class Ui_MainWindow(object):
             int_height = int(no_chars_height)
         ratio_w = max_Width / int_width
         ratio_h = max_Height / int_height
-        print(ratio_w)
-        print(ratio_h)
         if ratio_w < ratio_h:
             # It must be fixed by width
             resize_width = int_width * ratio_w

@@ -33,17 +33,18 @@ import os
 import random
 import re
 import sys
-
 from math import *
-
-inputfilename = "sun.svg"
-outputfilename = "sunout.svg"
 
 def pathes(filepaht1,filepath2):
     global inputfilename
     inputfilename = filepaht1
+    print(inputfilename)
     global outputfilename
     outputfilename = filepath2
+    print(outputfilename)
+    return (inputfilename,outputfilename)
+
+
 
 
 # a dictionary of all of the xmlns prefixes in a standard inkscape doc
@@ -187,9 +188,10 @@ class Effect:
         """Collect command line arguments"""
         self.options, self.args = self.OptionParser.parse_args(args)
 
-    def parse(self, filename=inputfilename):
-        """Parse document in specified file or on stdin"""
 
+    def parse(self, filename=""):
+        """Parse document in specified file or on stdin"""
+        filename = inputfilename
         # First try to open the file from the function argument
         if filename is not None:
             try:
@@ -291,7 +293,7 @@ class Effect:
         result = etree.tostring(self.document)
         if original != result:
             outpath = outputfilename
-            file = open(outpath, 'w')
+            file = open(str(outpath), 'w')
             string = (result.decode("utf-8"))
             str_string = str(string)
             file.write(str_string)
@@ -439,4 +441,3 @@ class Effect:
         except ValueError:
             return value
 
-# vim: expandtab shiftwidth=4 tabstop=8 softtabstop=4 fileencoding=utf-8 textwidth=99
