@@ -1430,8 +1430,6 @@ def openSVG():
     SVG_open_path =str(root.SVGfile)
 
 
-
-
 def close_window():
     root.destroy()
 
@@ -1506,6 +1504,7 @@ Preview_image_checkbox.place(x=10,y = 380)
 
 Button(root, text='Vector Fill', command=Fill_path, bg="gray20", fg="lime green", highlightbackground="gray20",
        activebackground="deep sky blue").place(x=290, y=380, height=25, width=140)
+
 root.configure(background='gray20')
 
 Hatch_spacing = StringVar(root, value='3')
